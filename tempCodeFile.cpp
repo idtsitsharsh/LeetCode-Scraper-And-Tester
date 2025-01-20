@@ -1,4 +1,8 @@
-#include <iostream>
+#include<iostream>
 using namespace std;
 
-int main(){int a,b; cin>>a>>b;cout<<0<<" "<<1<<endl;}
+int main(){
+    string s;
+    cin>>s;
+    cout<<'c'<<endl;
+}

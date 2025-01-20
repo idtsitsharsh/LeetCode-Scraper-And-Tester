@@ -14,68 +14,83 @@ const readExpectedOutput = (filePath) => {
 
 // Function to execute Python code and compare output
 const runPythonTests = (pythonSourceFile) => {
-    // Define the directory where the files are located
-    const leetCodeProblemsDir = path.join('D:', 'Webd Code', 'Tinkering Lab', 'LeetCodeProblem');
+    return new Promise((resolve, reject) => {
+        try {
+            // Define the directory where the files are located
+            const leetCodeProblemsDir = path.join('D:', 'Webd Code', 'Tinkering Lab', 'leetcodescraper', 'LeetCodeProblem');
 
-    // Get all input files in the directory
-    const inputFiles = fs.readdirSync(leetCodeProblemsDir).filter(file => file.startsWith('input_') && file.endsWith('.txt'));
+            // Get all input files in the directory
+            const inputFiles = fs.readdirSync(leetCodeProblemsDir).filter(file => file.startsWith('input_') && file.endsWith('.txt'));
 
-    // Step 1: Iterate through all input files and test
-    const testCases = inputFiles.map(inputFile => {
-        const testCaseNumber = inputFile.match(/\d+/)[0]; // Extract test case number
-        const expectedOutputFile = `output_${testCaseNumber}.txt`;
+            console.log('Found input files:', inputFiles);
 
-        const inputFilePath = path.join(leetCodeProblemsDir, inputFile);
-        const expectedOutputFilePath = path.join(leetCodeProblemsDir, expectedOutputFile);
+            // Step 2: Iterate through all input files and test
+            const testCases = inputFiles.map(inputFile => {
+                const testCaseNumber = inputFile.match(/\d+/)[0]; // Extract test case number
+                const expectedOutputFile = `output_${testCaseNumber}.txt`;
 
-        return { inputFilePath, expectedOutputFilePath, testCaseNumber };
-    });
+                const inputFilePath = path.join(leetCodeProblemsDir, inputFile);
+                const expectedOutputFilePath = path.join(leetCodeProblemsDir, expectedOutputFile);
 
-    const runTestCases = async () => {
-        for (const { inputFilePath, expectedOutputFilePath, testCaseNumber } of testCases) {
-            if (!fs.existsSync(expectedOutputFilePath)) {
-                console.error(`Expected output file ${expectedOutputFilePath} is missing.`);
-                break;
-            }
+                return { inputFilePath, expectedOutputFilePath, testCaseNumber };
+            });
 
-            const input = readInput(inputFilePath);
-            const expectedOutput = readInput(expectedOutputFilePath);
+            let output = '';
+            const runTestCases = async () => {
+                for (const { inputFilePath, expectedOutputFilePath, testCaseNumber } of testCases) {
+                    if (!fs.existsSync(expectedOutputFilePath)) {
+                        console.error(`Expected output file ${expectedOutputFilePath} is missing.`);
+                        continue;
+                    }
 
-            // Write input to a temporary file
-            fs.writeFileSync('temp_input.txt', input);
+                    const input = fs.readFileSync(inputFilePath, 'utf-8').trim();
+                    const expectedOutput = fs.readFileSync(expectedOutputFilePath, 'utf-8').trim();
 
-            // Execute the Python script with input redirection
-            const executeCommand = `python ${pythonSourceFile} < temp_input.txt`;
-            try {
-                const actualOutput = await new Promise((resolve, reject) => {
-                    exec(executeCommand, (execErr, execStdout, execStderr) => {
-                        if (execErr || execStderr) {
-                            reject(execErr || execStderr);
-                            return;
+                    // Write input to a temporary file
+                    const tempInputFile = 'temp_input.txt';
+                    fs.writeFileSync(tempInputFile, input);
+
+                    // Execute the Python script with input redirection
+                    pythonSourceFile = path.join(__dirname, 'tempCodeFile.py');
+                    const executeCommand = `cmd /c "python "${pythonSourceFile}" < ${tempInputFile}"`; // Windows-specific command
+                    try {
+                        const actualOutput = await new Promise((resolve, reject) => {
+                            exec(executeCommand, (execErr, execStdout, execStderr) => {
+                                if (execErr || execStderr) {
+                                    reject(execErr || execStderr);
+                                    return;
+                                }
+                                resolve(execStdout.trim());
+                            });
+                        });
+
+                        // Compare the output with the expected output
+                        if (actualOutput === expectedOutput) {
+                            output += `Test case ${testCaseNumber} passed.\n`;
+                        } else {
+                            output += `Test case ${testCaseNumber} failed.\n`;
+                            output += `Expected: ${expectedOutput}\n`;
+                            output += `Got: ${actualOutput}\n`;
                         }
-                        resolve(execStdout.trim());
-                    });
-                });
-
-                // Compare the output with the expected output
-                if (actualOutput === expectedOutput) {
-                    return `Test case ${testCaseNumber} passed.`;
-                } else {
-                    return `Test case ${testCaseNumber} failed. Expected: ${expectedOutput}, but got: ${actualOutput}`;
+                        console.log(output);
+                    } catch (error) {
+                        console.error(`Error executing test case ${testCaseNumber}:`, error);
+                    } finally {
+                        // Clean up the temporary input file
+                        fs.unlinkSync(tempInputFile);
+                    }
                 }
-            } catch (error) {
-                console.error(`Error executing test case ${testCaseNumber}:`, error);
-                break;
-            } finally {
-                // Clean up the temporary input file
-                fs.unlinkSync('temp_input.txt');
-            }
+
+                const result = output;
+                console.log(output);
+                resolve(result);
+            };
+
+            runTestCases();
+        } catch (error) {
+            reject(error); // Reject the promise if there's an error
         }
-
-        // Step 2: No need to delete anything for Python as there’s no executable to delete
-    };
-
-    runTestCases();
+    });
 };
 
 const runCppTests = (cppSourceFile) => {
@@ -144,17 +159,20 @@ const runCppTests = (cppSourceFile) => {
                         output+=`Expected: ${expectedOutput}\n`;
                         output+=`Got: ${actualOutput}\n`;
                         console.log(output);
-                        const result = output;
-                        resolve(result);
+                        
                     }
+                    
                 } catch (error) {
                     console.error(`Error executing test case ${testCaseNumber}:`, error);
                 } finally {
                     // Clean up the temporary input file
+                    
                     fs.unlinkSync(tempInputFile);
                 }
             }
-
+            const result = output;
+            console.log(output);
+            resolve(result);
             // Step 3: Delete the executable file after all tests
             try {
                 // fs.unlinkSync('tempCodeFile.exe');

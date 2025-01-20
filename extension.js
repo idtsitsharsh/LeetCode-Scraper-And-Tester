@@ -52,46 +52,71 @@ function activate(context) {
 				case 'testCode':
 					const tempFilePath = path.join(__dirname, 'tempCodeFile');
 					const { code, language } = message;
-	
+				
 					// Write the code to a temporary file
 					const extension = language === 'cpp' ? '.cpp' : '.py';
 					const filePath = tempFilePath + extension;
-					fs.writeFileSync(filePath, code);
-					
-					let testResult;
+				
 					try {
-						if (language === 'cpp') {
-							const testCppCode = async () => {
-								const testResult = await runCppTests("tempCodeFile.cpp");
-								try {
-									await panel.webview.postMessage({
-										command: 'testResult',
-										result: testResult,
-									});
-									console.log("hey");
-									console.log(testResult);  // Now testResult will have the correct value after waiting for the function to complete
-								} catch (error) {
-									console.error('Error running C++ tests:', error);
-								}
-							};
-							
-							// Call the function to start the tests
-							testCppCode();
-							
-						} else if (language === 'python') {
-							testResult = runPythonTests(".\\tempCodeFile.py");
-						}
-						
-						
+						fs.writeFileSync(filePath, code); // Ensure the file is written synchronously
+						console.log(`File written successfully: ${filePath}`);
+				
+						const waitForFile = (filePath) => {
+							return new Promise((resolve, reject) => {
+								const interval = setInterval(() => {
+									if (fs.existsSync(filePath)) {
+										clearInterval(interval);
+										resolve();
+									}
+								}, 50); // Check every 50ms
+								setTimeout(() => {
+									clearInterval(interval);
+									reject(new Error(`File ${filePath} not found within timeout`));
+								}, 5000); // Timeout after 5 seconds
+							});
+						};
+				
+						waitForFile(filePath).then(async () => {
+							if (language === 'cpp') {
+								const testCppCode = async () => {
+									try {
+										const testResult = await runCppTests("tempCodeFile.cpp");
+										await panel.webview.postMessage({
+											command: 'testResult',
+											result: testResult,
+										});
+										console.log(testResult);
+									} catch (error) {
+										console.error('Error running C++ tests:', error);
+									}
+								};
+				
+								testCppCode();
+							} else if (language === 'python') {
+								const testPythonCode = async () => {
+									try {
+										const testResult = await runPythonTests("tempCodeFile.py");
+										await panel.webview.postMessage({
+											command: 'testResult',
+											result: testResult,
+										});
+										console.log(testResult);
+									} catch (error) {
+										console.error('Error running Python tests:', error);
+									}
+								};
+				
+								testPythonCode();
+							}
+						}).catch((error) => {
+							console.error(`Error waiting for file to exist: ${error.message}`);
+						});
+				
 					} catch (error) {
-						testResult = `Error running tests: ${error.message}`;
-					} finally {
-						// Delete the temporary file
-						// fs.unlinkSync(filePath);
+						console.log(`Error writing file or running tests: ${error.message}`);
 					}
-	
-					
 					break;
+					
             }
         });
     });
