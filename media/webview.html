@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetCode Scraper</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #leftPanel {
+            width: 40%;
+            padding: 20px;
+            border-right: 2px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #rightPanel {
+            width: 60%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="leftPanel">
+        <input type="text" id="urlInput" placeholder="Enter LeetCode URL" />
+        <button id="submitButton">Submit</button>
+        <select id="languageDropdown">
+            <option value="cpp">C++</option>
+            <option value="python">Python</option>
+        </select>
+        <button id="testButton">Test Code</button>
+        <div id="errorMessage" style="color: red;"></div>
+        <pre id="problemDescription"></pre>
+        <pre id="testResults"></pre>
+    </div>
+    <div id="rightPanel">
+        <textarea id="codeEditor" placeholder="Write your code here..." rows="30"></textarea>
+    </div>
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        document.getElementById('submitButton').addEventListener('click', () => {
+            const url = document.getElementById('urlInput').value;
+            if (url) {
+                vscode.postMessage({ command: 'submitUrl', url: url });
+            } else {
+                document.getElementById('errorMessage').textContent = 'Please enter a URL.';
+            }
+        });
+
+        document.getElementById('testButton').addEventListener('click', () => {
+            const code = document.getElementById('codeEditor').value;
+            const language = document.getElementById('languageDropdown').value;
+            if (code) {
+                vscode.postMessage({ command: 'testCode', code, language });
+            } else {
+                document.getElementById('errorMessage').textContent = 'Please write code to test.';
+            }
+        });
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'displayProblem':
+                    document.getElementById('problemDescription').textContent = message.content;
+                    break;
+                case 'testResult':
+                    document.getElementById('testResults').textContent = message.result;
+                    break;
+                case 'error':
+                    document.getElementById('errorMessage').textContent = message.message;
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
