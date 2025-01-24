@@ -1,32 +1,23 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const { scrapeLeetCodeProblem } = require('./scraper'); // Import the scraper function
+const { scrapeLeetCodeProblem } = require('./scraper');
 const { runCppTests, runPythonTests } = require('./run_tests');
 
 function activate(context) {
-	// extensionPath = context.extensionPath;
     let disposable = vscode.commands.registerCommand('extension.scrapeLeetCode', async () => {
         console.log('Command triggered: extension.scrapeLeetCode');
-
-        // Create a new Webview Panel
         const panel = vscode.window.createWebviewPanel(
-            'leetCodeScraper', // Identifies the type of the webview
-            'LeetCode Scraper', // Title of the webview
-            vscode.ViewColumn.One, // Show the webview in the first column
+            'leetCodeScraper', 
+            'LeetCode Scraper',
+            vscode.ViewColumn.One, 
             {
-                enableScripts: true, // Allow JavaScript in the webview
-                localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media'))], // Allow access to the media folder
+                enableScripts: true, 
+                localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media'))], 
             }
         );
-
-        // Get the HTML content by reading the external HTML file
         const htmlContent = getWebviewContent(context.extensionPath, panel);
-
-        // Set the HTML content for the webview
         panel.webview.html = htmlContent;
-
-        // Listen for messages from the webview
         panel.webview.onDidReceiveMessage(async message => {
             switch (message.command) {
                 case 'submitUrl':
@@ -34,10 +25,8 @@ function activate(context) {
                     if (url) {
                         console.log('Entered URL:', url);
                         try {
-                            // Call the scraper function with the URL provided by the user
                             const result = await scrapeLeetCodeProblem(url);
                             if (result) {
-                                // Send the content of problem_description.txt back to the webview
                                 const problemDescription = await getProblemDescription();
                                 panel.webview.postMessage({ command: 'displayProblem', content: problemDescription });
                             }
@@ -52,13 +41,11 @@ function activate(context) {
 				case 'testCode':
 					const tempFilePath = path.join(__dirname, 'tempCodeFile');
 					const { code, language } = message;
-				
-					// Write the code to a temporary file
 					const extension = language === 'cpp' ? '.cpp' : '.py';
 					const filePath = tempFilePath + extension;
 				
 					try {
-						fs.writeFileSync(filePath, code); // Ensure the file is written synchronously
+						fs.writeFileSync(filePath, code);
 						console.log(`File written successfully: ${filePath}`);
 				
 						const waitForFile = (filePath) => {
@@ -68,11 +55,11 @@ function activate(context) {
 										clearInterval(interval);
 										resolve();
 									}
-								}, 50); // Check every 50ms
+								}, 50); 
 								setTimeout(() => {
 									clearInterval(interval);
 									reject(new Error(`File ${filePath} not found within timeout`));
-								}, 5000); // Timeout after 5 seconds
+								}, 5000);
 							});
 						};
 				
@@ -132,39 +119,24 @@ module.exports = {
     deactivate
 };
 
-// Function to get the HTML content for the webview
 function getWebviewContent(extensionPath, panel) {
-	
-    // Ensure extensionPath is a string
 	console.log(extensionPath);
     if (typeof extensionPath !== 'string') {
         vscode.window.showErrorMessage('Invalid extension path');
         return '';
     }
-
-    // Correctly reference the CSS and JS files in the media folder
-    const scriptUri = vscode.Uri.file(path.join(extensionPath, 'media', 'script.js'));
-    const styleUri = vscode.Uri.file(path.join(extensionPath, 'media', 'styles.css'));
-
-    // Convert the URIs to webview-compatible paths
-    const scriptSrc = panel.webview.asWebviewUri(scriptUri).toString();
-    const styleSrc = panel.webview.asWebviewUri(styleUri).toString();
-    // Read the HTML content from the webview.html file
+    // const scriptUri = vscode.Uri.file(path.join(extensionPath, 'media', 'script.js'));
+    // const styleUri = vscode.Uri.file(path.join(extensionPath, 'media', 'styles.css'));
+    // const scriptSrc = panel.webview.asWebviewUri(scriptUri).toString();
+    // const styleSrc = panel.webview.asWebviewUri(styleUri).toString();
     const htmlUri = vscode.Uri.file(path.join(extensionPath, 'media', 'webview.html'));
     const htmlContent = fs.readFileSync(htmlUri.fsPath, 'utf8');
-	console.log(scriptSrc);
+	// console.log(scriptSrc);
 	// return htmlContent;
     // Return the HTML content with the correct paths for the resources
-    return htmlContent.replace(
-        /<script src=""><\/script>/,
-        `<script src="${scriptSrc}"></script>`
-    ).replace(
-        /<link rel="stylesheet" href="" id="styleLink">/,
-        `<link rel="stylesheet" href="${styleSrc}" id="styleLink" />`
-    );
+    return htmlContent;
 }
 
-// Function to get the content of the problem_description.txt file
 async function getProblemDescription() {
     const fs = require('fs');
     const path = require('path');

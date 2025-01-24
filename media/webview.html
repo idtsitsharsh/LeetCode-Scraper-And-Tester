@@ -26,12 +26,10 @@
             flex-direction: column;
         }
 
-        /* The container for Monaco Editor */
         #editorContainer {
-            height: 100vh; /* Full viewport height */
-            width: 100%; /* Full width */
+            height: 100vh;
+            width: 100%;
         }
-
 
         .search{
             display: flex;
@@ -112,31 +110,46 @@
             }
             var elements = document.querySelectorAll('.display');
   
-            // Loop through each element and change its display property
             elements.forEach(function(element) {
-                element.style.display = 'block';  // or 'inline', 'flex', depending on your layout
+                element.style.display = 'block';  
             });
             var elements2 = document.querySelectorAll('.search');
-  
-            // Loop through each element and change its display property
             elements2.forEach(function(element) {
-                element.style.display = 'block';  // or 'inline', 'flex', depending on your layout
+                element.style.display = 'block';  
             });
         });
+        const boilerplateCode = {
+            cpp: `#include <iostream>
+using namespace std;
 
+int main() {
+    // Write your solution here
+    return 0;
+}
+            `,
+            python: `# Write your solution here
+if __name__ == "__main__":
+    pass
+            `
+        };
         require.config({
             paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs' }
         });
         let editor_value;
         require(['vs/editor/editor.main'], function() {
-            // Create Monaco Editor instance inside the div with id "editorContainer"
             editor_value=monaco.editor.create(document.getElementById('editorContainer'), {
-                value: '', // Initial content (empty for now)
-                language: 'cpp', // Set language mode (C++ in this case)
-                theme: 'vs-dark', // Set the theme to dark (like VS Code)
-                automaticLayout: true // Automatically adjust layout on window resize
+                value: boilerplateCode.cpp, 
+                language: 'cpp',
+                theme: 'vs-dark',
+                automaticLayout: true
             });
         });
+
+        document.getElementById('languageDropdown').addEventListener('change', function (event) {
+                const selectedLanguage = event.target.value;
+                editor_value.setValue(boilerplateCode[selectedLanguage]);
+                monaco.editor.setModelLanguage(editor_value.getModel(), selectedLanguage); 
+            });
 
         document.getElementById('testButton').addEventListener('click', () => {
             const code = editor_value.getValue();
@@ -163,10 +176,7 @@
                     document.getElementById('errorMessage').textContent = message.message;
                     break;
             }
-        });
-        // Initialize Monaco Editor
-        
-
+        }); 
     </script>
 </body>
 </html>
